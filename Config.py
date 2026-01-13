@@ -1,20 +1,36 @@
 WIDTH, HEIGHT = 800,600
 # small default timestep to keep simulation stable (change during runtime as desired)
 delta = 0.12
-num_particles = 1000
+num_particles = 600
 particle_size = 3
 gravity = (0, 10) #normal earth gravity would be (0, 9.81)
 mass = 5
+
 max_speed = 100
 collision_damping = 0.9
 smoothing_radius = 12
+
 target_density = 0.0038
 viscosity_strength = 1.0
 stiffness_constant = 500 # aka pressure multipler, change this!!
 xsph_epsilon = 0.1
-delta = 0.02
+
 interaction_strength = 0
 interaction_radius = 100
+
 grid_size = int(smoothing_radius* 1.2)# change this number-approx around 1
+
 debug_mode = True
-color_scheme = "coolwarm"
+
+color_scheme = "viridis"
+
+outlet_num_particles = 1
+outlet_spray = True
+outlets_paused = False
+
+drain_strength = 100
+drains_paused = False
+
+env_interact_drain = True
+
+delete_particles_in_drain = False

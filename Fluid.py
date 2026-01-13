@@ -6,6 +6,9 @@ import numpy as np
 positions = []
 velocities = []
 
+outlets=[]
+drains = []
+
 cmap = cm.get_cmap(Config.color_scheme)
 
 
@@ -13,10 +16,12 @@ cmap = cm.get_cmap(Config.color_scheme)
 frame_counter = 0
 
 def update(win, acc_ext, mouse_pos):
+
     N = len(positions)
 
     #initialize and register grid
     grids = initialize_grid()
+    
     for i in range(N):
         cell_belonging = look_up_grid(positions[i]) # cell in grid the particle belongs in
         grids = register_grid(cell_belonging, i, grids) # register the index into the 2d array
@@ -326,3 +331,71 @@ def xsph_corrections(candidate_vels, densities, grids):
                         contrib += (candidate_vels[j] - vi) * (Config.mass / max(densities[j], 1e-8)) * w
         corrections[i] = contrib * eps
     return corrections
+
+
+
+class Outlet:
+    def __init__(self, pos, speed):
+        self.pos = pos
+        self.speed = speed
+
+    def spawn_particle(self):
+        for i in range(Config.outlet_num_particles):
+            vel = self.speed
+            if Config.outlet_spray:
+                angle = random.uniform(-math.pi / 8, math.pi / 8)
+                vel = vel.rotate_rad(angle)
+            velocities.append(pygame.Vector2(vel))
+            positions.append(pygame.Vector2(self.pos))
+        
+    def draw(self, win, radius=10, col=(255,255,255)):
+        pygame.draw.circle(win, col, self.pos, radius, 2)
+        pygame.draw.line(win, col, self.pos, self.pos + self.speed.normalize()*radius, 2)
+
+class Drain:
+    def __init__(self, pos, radius):
+        self.pos = pos
+        self.radius = radius
+        self.grid_pos = look_up_grid(self.pos)
+
+    def pull_particles(self):
+        for i in range(len(positions)-1, -1, -1):
+            r_vec = positions[i] - self.pos
+            if r_vec.length() > Config.interaction_radius**2: # optimization, ignore far particles
+                continue
+            a = Config.drain_strength * self.radius**2 / r_vec.length()**2
+            velocities[i] -= r_vec.normalize() * a * Config.delta
+            if Config.delete_particles_in_drain and r_vec.length() <= self.radius:
+                # remove particle
+                positions.pop(i)
+                velocities.pop(i)
+
+    def draw(self, win, col=(100,100,100)):
+        pygame.draw.circle(win, col, self.pos, self.radius, 2)
+
+def update_drains(win):
+    #print(drains)
+    if not Config.drains_paused:
+        for drain in drains:
+            drain.pull_particles()
+            drain.draw(win)
+
+def add_drain(pos:pygame.Vector2, mouse_pos:pygame.Vector2):
+    radius = mouse_pos - pos
+    drains.append(Drain(pos, radius.length()))
+
+def update_outlets(win):
+    #print(outlets)
+    if not Config.outlets_paused:
+        for outlet in outlets:
+            if Config.delta != 0:
+                outlet.spawn_particle()
+            outlet.draw(win)
+
+def add_outlet(pos:pygame.Vector2, mouse_pos:pygame.Vector2):
+    direction = mouse_pos - pos
+    outlets.append(Outlet(pos, direction))
+
+def clear_outlets_drains():
+    outlets.clear()
+    drains.clear()
